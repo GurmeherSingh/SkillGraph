@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './App.css';
 import ResumeUpload from './components/ResumeUpload';
 import RoleSelector from './components/RoleSelector';
 import GraphViewer from './components/GraphViewer';
 import PlanViewer from './components/PlanViewer';
 import ExportButton from './components/ExportButton';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#90caf9',
+    },
+    background: {
+      default: '#121212',
+      paper: '#1e1e1e',
+    },
+  },
+  typography: {
+    fontFamily: 'Inter, Roboto, Arial, sans-serif',
+  },
+});
 
 function App() {
   const [parsedSkills, setParsedSkills] = useState(null);
@@ -51,25 +73,36 @@ function App() {
 
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>SkillGraph AI</h1>
-      </header>
-      <main>
-        <div className="container">
-          <div className="left-panel">
-            <ResumeUpload setParsedSkills={setParsedSkills} />
-            <RoleSelector onRoleSelect={handleRoleSelect} />
-            <button onClick={generatePlan} disabled={!skillGaps}>Generate Study Plan</button>
-          </div>
-          <div className="right-panel">
-            <GraphViewer skillGraph={skillGraph} />
-            <PlanViewer studyPlan={studyPlan} />
-            <ExportButton studyPlan={studyPlan} />
-          </div>
-        </div>
-      </main>
-    </div>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper elevation={6} sx={{ p: 4, borderRadius: 4, background: darkTheme.palette.background.paper }}>
+          <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={4}>
+            <Box flex={1} minWidth={320}>
+              <Typography variant="h3" color="primary" gutterBottom fontWeight={700}>
+                SkillGraph AI
+              </Typography>
+              <ResumeUpload setParsedSkills={setParsedSkills} />
+              <RoleSelector onRoleSelect={handleRoleSelect} />
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={generatePlan}
+                disabled={!skillGaps}
+                sx={{ mt: 2, fontWeight: 600 }}
+              >
+                Generate Study Plan
+              </Button>
+            </Box>
+            <Box flex={2} minWidth={320}>
+              <GraphViewer skillGraph={skillGraph} />
+              <PlanViewer studyPlan={studyPlan} />
+              <ExportButton studyPlan={studyPlan} />
+            </Box>
+          </Box>
+        </Paper>
+      </Container>
+    </ThemeProvider>
   );
 }
 

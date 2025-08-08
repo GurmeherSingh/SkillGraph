@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
 
 const ResumeUpload = ({ setParsedSkills }) => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [pastedText, setPastedText] = useState('');
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -17,10 +22,6 @@ const ResumeUpload = ({ setParsedSkills }) => {
     }
     setError("");
     setSelectedFile(file);
-  };
-
-  const handleTextChange = (event) => {
-    setPastedText(event.target.value);
   };
 
   const handleSubmit = async () => {
@@ -52,20 +53,25 @@ const ResumeUpload = ({ setParsedSkills }) => {
   };
 
   return (
-    <div>
-      <h2>Upload Resume (PDF only)</h2>
-      <input type="file" accept=".pdf" onChange={handleFileChange} />
-      {error && <div style={{ color: 'red', marginTop: '8px' }}>{error}</div>}
-      {success && <div style={{ color: 'green', marginTop: '8px' }}>{success}</div>}
-      <button onClick={handleSubmit} style={{ marginTop: '12px' }} disabled={loading}>
-        {loading ? 'Uploading...' : 'Submit'}
-      </button>
-      {loading && (
-        <div style={{ marginTop: '12px' }}>
-          <span role="status" aria-live="polite">Parsing resume, please wait...</span>
-        </div>
-      )}
-    </div>
+    <Paper elevation={3} sx={{ p: 3, mb: 3, background: '#23272f', borderRadius: 3 }}>
+      <Typography variant="h5" color="primary" fontWeight={600} gutterBottom>
+        Upload Resume (PDF only)
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <input type="file" accept=".pdf" onChange={handleFileChange} style={{ color: '#fff' }} />
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={loading}
+          sx={{ fontWeight: 600 }}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
+        </Button>
+      </Box>
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
+    </Paper>
   );
 };
 

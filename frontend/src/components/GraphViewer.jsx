@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import mermaid from 'mermaid';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
 mermaid.initialize({
   startOnLoad: true,
-  theme: 'default',
+  theme: 'dark',
   securityLevel: 'loose',
-  fontFamily: 'monospace',
+  fontFamily: 'Inter, Roboto, Arial, sans-serif',
 });
 
 const GraphViewer = ({ skillGraph }) => {
@@ -22,14 +24,18 @@ const GraphViewer = ({ skillGraph }) => {
   }, [skillGraph]);
 
   return (
-    <div>
-      <h2>Skill Graph</h2>
+    <Paper elevation={3} sx={{ p: 3, mb: 3, background: '#23272f', borderRadius: 3 }}>
+      <Typography variant="h5" color="primary" fontWeight={600} gutterBottom>
+        Skill Graph
+      </Typography>
       {skillGraph ? (
         <div className="mermaid">{skillGraph}</div>
       ) : (
-        <p>Your skill graph will appear here once you select a role.</p>
+        <Typography variant="body2" color="text.secondary">
+          Your skill graph will appear here once you select a role.
+        </Typography>
       )}
-    </div>
+    </Paper>
   );
 };
 

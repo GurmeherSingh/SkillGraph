@@ -1,33 +1,46 @@
 import React from 'react';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Link from '@mui/material/Link';
 
 const PlanViewer = ({ studyPlan }) => {
   return (
-    <div>
-      <h2>Your 6-Month Study Roadmap</h2>
+    <Paper elevation={3} sx={{ p: 3, mb: 3, background: '#23272f', borderRadius: 3 }}>
+      <Typography variant="h5" color="primary" fontWeight={600} gutterBottom>
+        Your 6-Month Study Roadmap
+      </Typography>
       {studyPlan ? (
-        <div className="study-plan">
+        <Box className="study-plan" sx={{ mt: 2 }}>
           {Object.entries(studyPlan).map(([week, details]) => (
-            <div key={week} className="plan-module">
-              <h3>{week}</h3>
-              <p><strong>Focus:</strong> {details.focus}</p>
-              <p><strong>Time Commitment:</strong> {details.time_commitment}</p>
-              <h4>Resources:</h4>
-              <ul>
+            <Paper key={week} elevation={1} sx={{ p: 2, mb: 2, background: '#1a1d22', borderRadius: 2 }}>
+              <Typography variant="h6" color="primary" fontWeight={500} gutterBottom>
+                {week}
+              </Typography>
+              <Chip label={details.focus} color="info" sx={{ mb: 1 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>Time Commitment:</strong> {details.time_commitment}
+              </Typography>
+              <Typography variant="subtitle2" color="primary" sx={{ mt: 1 }}>Resources:</Typography>
+              <Box component="ul" sx={{ pl: 3, mb: 0 }}>
                 {details.resources.map((resource, index) => (
                   <li key={index}>
-                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                    <Link href={resource.url} target="_blank" rel="noopener" underline="hover" color="secondary">
                       {resource.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
-              </ul>
-            </div>
+              </Box>
+            </Paper>
           ))}
-        </div>
+        </Box>
       ) : (
-        <p>Your study plan will appear here once generated.</p>
+        <Typography variant="body2" color="text.secondary">
+          Your study plan will appear here once generated.
+        </Typography>
       )}
-    </div>
+    </Paper>
   );
 };
 

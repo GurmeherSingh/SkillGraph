@@ -1,10 +1,12 @@
 import React from 'react';
 import axios from 'axios';
+import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
 const ExportButton = ({ studyPlan }) => {
   const handleExport = async () => {
     if (!studyPlan) {
-      alert('No study plan to export.');
       return;
     }
 
@@ -24,16 +26,26 @@ const ExportButton = ({ studyPlan }) => {
 
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      alert('Failed to export PDF.');
     }
   };
 
   return (
-    <div>
-      <button onClick={handleExport} disabled={!studyPlan}>
+    <Paper elevation={3} sx={{ p: 2, mt: 2, background: '#23272f', borderRadius: 3, textAlign: 'center' }}>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={handleExport}
+        disabled={!studyPlan}
+        sx={{ fontWeight: 600 }}
+      >
         Export to PDF
-      </button>
-    </div>
+      </Button>
+      {!studyPlan && (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          Generate a study plan to enable export.
+        </Typography>
+      )}
+    </Paper>
   );
 };
 

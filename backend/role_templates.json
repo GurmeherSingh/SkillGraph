@@ -1,0 +1,47 @@
+{
+  "swe-google": {
+    "name": "Software Engineer at Google",
+    "required_skills": [
+      "Data Structures",
+      "Algorithms",
+      "System Design",
+      "Python",
+      "C++",
+      "Java",
+      "Go",
+      "Distributed Systems",
+      "Cloud Computing (GCP)",
+      "Databases (SQL & NoSQL)"
+    ]
+  },
+  "data-scientist-netflix": {
+    "name": "Data Scientist at Netflix",
+    "required_skills": [
+      "Python",
+      "R",
+      "SQL",
+      "Machine Learning",
+      "Deep Learning",
+      "Statistics",
+      "Experimentation (A/B Testing)",
+      "Data Visualization",
+      "Big Data Technologies (Spark, Hadoop)",
+      "Causal Inference"
+    ]
+  },
+  "ml-engineer-openai": {
+    "name": "ML Engineer at OpenAI",
+    "required_skills": [
+      "Python",
+      "PyTorch",
+      "TensorFlow",
+      "Deep Learning",
+      "Natural Language Processing (NLP)",
+      "Reinforcement Learning",
+      "Large-scale systems",
+      "Kubernetes",
+      "Docker",
+      "Software Engineering"
+    ]
+  }
+}

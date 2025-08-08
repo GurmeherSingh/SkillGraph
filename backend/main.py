@@ -9,6 +9,9 @@ import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT
 
 from ai_utils import get_completion
 
@@ -61,16 +64,15 @@ def read_root():
 
 @app.post("/parse_resume", response_model=ResumeParseResponse)
 async def parse_resume(file: UploadFile = File(...)):
-    # ... (code for parsing resume, unchanged)
+    # Only accept PDF files
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
     try:
         content = await file.read()
         text = ""
-        if file.content_type == "application/pdf":
-            pdf_reader = pypdf.PdfReader(io.BytesIO(content))
-            for page in pdf_reader.pages:
-                text += page.extract_text()
-        else:
-            text = content.decode("utf-8")
+        pdf_reader = pypdf.PdfReader(io.BytesIO(content))
+        for page in pdf_reader.pages:
+            text += page.extract_text()
 
         prompt = f"""
         Analyze the following resume text and extract the skills, tools, and past roles.
@@ -183,29 +185,49 @@ async def generate_plan(request: PlanGenerateRequest):
 
 @app.post("/export_plan_pdf")
 async def export_plan_pdf(request: PdfExportRequest):
+    """
+    Generates a PDF document from the study plan and returns it as a stream.
+    This version uses ReportLab's Platypus for better flow control and text wrapping.
+    """
     buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                            rightMargin=inch, leftMargin=inch,
+                            topMargin=inch, bottomMargin=inch)
+    
+    styles = getSampleStyleSheet()
+    # Add a custom style for URLs to make them more readable
+    styles.add(ParagraphStyle(name='URLStyle', parent=styles['Normal'], textColor='blue', wordWrap='CJK'))
 
-    p.drawString(inch, height - inch, "Your 6-Month Study Roadmap")
+    story = []
 
-    text = p.beginText(inch, height - 1.5 * inch)
-    text.setFont("Helvetica", 10)
+    # Title
+    story.append(Paragraph("Your 6-Month Study Roadmap", styles['h1']))
+    story.append(Spacer(1, 0.25 * inch))
 
+    # Plan content
     for week, details in request.study_plan.items():
-        text.setFont("Helvetica-Bold", 12)
-        text.textLine(week)
-        text.setFont("Helvetica", 10)
-        text.textLine(f"Focus: {details['focus']}")
-        text.textLine(f"Time Commitment: {details['time_commitment']}")
-        text.textLine("Resources:")
-        for resource in details['resources']:
-            text.textLine(f"- {resource['name']}: {resource['url']}")
-        text.moveCursor(0, 20) # Add space between modules
+        # Module Title
+        story.append(Paragraph(week, styles['h3']))
+        story.append(Spacer(1, 0.1 * inch))
 
-    p.drawText(text)
-    p.showPage()
-    p.save()
+        # Details
+        story.append(Paragraph(f"<b>Focus:</b> {details.get('focus', 'N/A')}", styles['Normal']))
+        story.append(Paragraph(f"<b>Time Commitment:</b> {details.get('time_commitment', 'N/A')}", styles['Normal']))
+        story.append(Spacer(1, 0.1 * inch))
+
+        # Resources
+        story.append(Paragraph("<b>Resources:</b>", styles['Normal']))
+        for resource in details.get('resources', []):
+            # Using Paragraphs allows for automatic line wrapping of long URLs
+            resource_text = f"- <a href='{resource.get('url', '#')}'>{resource.get('name', 'Unnamed Resource')}</a>"
+            story.append(Paragraph(resource_text, styles['URLStyle']))
+
+        story.append(Spacer(1, 0.25 * inch))
+
+    try:
+        doc.build(story)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
 
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="application/pdf", headers={

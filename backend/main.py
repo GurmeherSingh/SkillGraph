@@ -117,52 +117,96 @@ async def parse_resume(file: UploadFile = File(...)):
 
 @app.post("/compare_skills", response_model=SkillCompareResponse)
 async def compare_skills(request: SkillCompareRequest):
-    # ... (code for comparing skills, unchanged)
+    import re
+
+    # Step 1: Resolve required skills
     target_role_data = role_templates.get(request.target_role)
-    if not target_role_data:
-        raise HTTPException(status_code=404, detail="Target role not found.")
+    if target_role_data:
+        required_skills = set(target_role_data["required_skills"])
+    else:
+        # Fallback: use LLM to extract skills from free-text role name/description
+        extract_prompt = f"""
+        You are an expert in skill mapping.
+        Given the target role description below, return ONLY a JSON array of relevant skills.
+        Do not include explanations or other text.
+        
+        Role: {request.target_role}
+        """
+        skills_raw = await get_completion(extract_prompt)
+        import json
+        try:
+            required_skills = set(json.loads(skills_raw))
+        except json.JSONDecodeError:
+            required_skills = set()
 
-    required_skills = set(target_role_data["required_skills"])
-    current_skills = set(request.current_skills)
-    skill_gaps = list(required_skills - current_skills)
+    current_skills = list(request.current_skills)  # preserve order
+    skill_gaps = sorted(list(required_skills - set(current_skills)))
 
-    prompt = f"""
-    You are an expert in creating Mermaid.js graphs.
-    Generate a Mermaid.js graph definition based on the provided skills.
-    The graph should be a flowchart (graph TD).
-    - Nodes with existing skills should be styled with a green background.
-    - Nodes with skill gaps should be styled with a yellow background.
-    - Show relationships where existing skills are prerequisites for skill gaps.
-    - Do NOT include any explanations or markdown formatting. Only output the raw Mermaid.js graph definition.
+    # Helper: tokenize for simple semantic matching
+    def tokens(s: str):
+        return set(re.findall(r"\w+", (s or "").lower()))
 
-    Current Skills: {list(current_skills)}
-    Skill Gaps: {skill_gaps}
+    # Determine best current-skill match for each gap (fallback to first current skill)
+    edges_pairs = []
+    if current_skills:
+        for gap in skill_gaps:
+            best = None
+            best_score = 0
+            gap_tokens = tokens(gap)
+            for cur in current_skills:
+                score = len(gap_tokens & tokens(cur))
+                if score > best_score:
+                    best_score = score
+                    best = cur
+            if best is None:
+                best = current_skills[0]
+            edges_pairs.append((best, gap))
 
-    Example of a valid response:
-    graph TD
-        A["Python"];
-        B["Machine Learning"];
-        C["SQL"];
-        D["Big Data"];
-        A --> B;
-        C --> D;
-        style A fill:#9f9
-        style C fill:#9f9
-        style B fill:#ff9
-        style D fill:#ff9
+    # Build deterministic list of nodes: current skills first, then gaps
+    nodes_ordered = []
+    for s in current_skills:
+        if s not in nodes_ordered:
+            nodes_ordered.append(s)
+    for s in skill_gaps:
+        if s not in nodes_ordered:
+            nodes_ordered.append(s)
 
-    Mermaid.js Graph Definition:
-    """
+    if not nodes_ordered:
+        empty_graph = "graph TD\n    A[No skills provided]"
+        return {"skill_gaps": skill_gaps, "skill_graph": empty_graph}
 
-    graph_definition_raw = await get_completion(prompt)
-    
-    # Clean up the response to remove potential markdown fences
-    graph_definition = graph_definition_raw.strip().replace("```mermaid", "").replace("```", "").strip()
+    # Create safe IDs
+    id_map = {}
+    def make_id(i):
+        return f"N{i+1}"
+    for i, lbl in enumerate(nodes_ordered):
+        id_map[lbl] = make_id(i)
 
-    return {
-        "skill_gaps": skill_gaps,
-        "skill_graph": graph_definition,
-    }
+    # Escape labels for Mermaid
+    def esc(lbl: str) -> str:
+        return lbl.replace('"', '\\"').replace("\n", " ").strip()
+
+    lines = ["graph TD"]
+    for lbl in nodes_ordered:
+        lines.append(f'{id_map[lbl]}["{esc(lbl)}"]')
+
+    for left_lbl, right_lbl in edges_pairs:
+        if left_lbl not in id_map:
+            id_map[left_lbl] = make_id(len(id_map))
+            lines.append(f'{id_map[left_lbl]}["{esc(left_lbl)}"]')
+        if right_lbl not in id_map:
+            id_map[right_lbl] = make_id(len(id_map))
+            lines.append(f'{id_map[right_lbl]}["{esc(right_lbl)}"]')
+        lines.append(f'{id_map[left_lbl]} --> {id_map[right_lbl]}')
+
+    for lbl in nodes_ordered:
+        nid = id_map[lbl]
+        color = "#9f9" if lbl in current_skills else "#ff9"
+        lines.append(f"style {nid} fill:{color}")
+
+    graph = "\n".join(lines)
+    return {"skill_gaps": skill_gaps, "skill_graph": graph}
+
 
 @app.post("/generate_plan", response_model=PlanGenerateResponse)
 async def generate_plan(request: PlanGenerateRequest):
@@ -192,39 +236,43 @@ async def generate_plan(request: PlanGenerateRequest):
 async def export_plan_pdf(request: PdfExportRequest):
     """
     Generates a PDF document from the study plan and returns it as a stream.
-    This version uses ReportLab's Platypus for better flow control and text wrapping.
+    Handles any valid study plan dict, even if fields are missing or malformed.
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter,
                             rightMargin=inch, leftMargin=inch,
                             topMargin=inch, bottomMargin=inch)
-    
+
     styles = getSampleStyleSheet()
-    # Add a custom style for URLs to make them more readable
     styles.add(ParagraphStyle(name='URLStyle', parent=styles['Normal'], textColor='blue', wordWrap='CJK'))
 
     story = []
-
-    # Title
     story.append(Paragraph("Your 6-Month Study Roadmap", styles['h1']))
     story.append(Spacer(1, 0.25 * inch))
 
-    # Plan content
-    for week, details in request.study_plan.items():
-        # Module Title
-        story.append(Paragraph(week, styles['h3']))
+    plan = request.study_plan
+    if not isinstance(plan, dict):
+        plan = {}
+
+    for week, details in plan.items():
+        story.append(Paragraph(str(week), styles['h3']))
         story.append(Spacer(1, 0.1 * inch))
 
-        # Details
-        story.append(Paragraph(f"<b>Focus:</b> {details.get('focus', 'N/A')}", styles['Normal']))
-        story.append(Paragraph(f"<b>Time Commitment:</b> {details.get('time_commitment', 'N/A')}", styles['Normal']))
+        # Details: handle both dict and object
+        focus = details.get('focus', 'N/A') if isinstance(details, dict) else getattr(details, 'focus', 'N/A')
+        time_commitment = details.get('time_commitment', 'N/A') if isinstance(details, dict) else getattr(details, 'time_commitment', 'N/A')
+        resources = details.get('resources', []) if isinstance(details, dict) else getattr(details, 'resources', [])
+
+        story.append(Paragraph(f"<b>Focus:</b> {focus}", styles['Normal']))
+        story.append(Paragraph(f"<b>Time Commitment:</b> {time_commitment}", styles['Normal']))
         story.append(Spacer(1, 0.1 * inch))
 
-        # Resources
         story.append(Paragraph("<b>Resources:</b>", styles['Normal']))
-        for resource in details.get('resources', []):
-            # Using Paragraphs allows for automatic line wrapping of long URLs
-            resource_text = f"- <a href='{resource.get('url', '#')}'>{resource.get('name', 'Unnamed Resource')}</a>"
+        for resource in resources:
+            # Handle both dict and object
+            name = resource.get('name', 'Unnamed Resource') if isinstance(resource, dict) else getattr(resource, 'name', 'Unnamed Resource')
+            url = resource.get('url', '#') if isinstance(resource, dict) else getattr(resource, 'url', '#')
+            resource_text = f"- <a href='{url}'>{name}</a>"
             story.append(Paragraph(resource_text, styles['URLStyle']))
 
         story.append(Spacer(1, 0.25 * inch))

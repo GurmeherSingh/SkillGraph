@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
+import svgPanZoom from 'svg-pan-zoom';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
@@ -11,15 +12,29 @@ mermaid.initialize({
 });
 
 const GraphViewer = ({ skillGraph }) => {
+  const graphRef = useRef(null);
+
   useEffect(() => {
-    if (skillGraph) {
-      const mermaidContainer = document.querySelector('.mermaid');
-      if (mermaidContainer) {
-        mermaidContainer.innerHTML = skillGraph;
-        mermaid.run({
-            nodes: document.querySelectorAll('.mermaid'),
-        });
-      }
+    if (skillGraph && graphRef.current) {
+      graphRef.current.innerHTML = skillGraph;
+      mermaid.run({ nodes: [graphRef.current] });
+      // Wait for Mermaid to render SVG, then apply svg-pan-zoom
+      setTimeout(() => {
+        const svg = graphRef.current.querySelector('svg');
+        if (svg) {
+          svgPanZoom(svg, {
+            zoomEnabled: true,
+            controlIconsEnabled: true,
+            fit: true,
+            center: true,
+            minZoom: 0.2,
+            maxZoom: 5,
+            panEnabled: true,
+            dblClickZoomEnabled: false,
+            mouseWheelZoomEnabled: true,
+          });
+        }
+      }, 100);
     }
   }, [skillGraph]);
 
@@ -34,7 +49,12 @@ const GraphViewer = ({ skillGraph }) => {
             Sorry, there was an error generating your skill graph. Please try again or adjust your skills/role.
           </Typography>
         ) : (
-          <div className="mermaid">{skillGraph}</div>
+          <div
+            ref={graphRef}
+            className="mermaid"
+            style={{ width: '100%', minHeight: 400, overflow: 'auto', cursor: 'default', background: '#181a20', borderRadius: 8 }}
+            title="Scroll to zoom, drag to pan"
+          />
         )
       ) : (
         <Typography variant="body2" color="text.secondary">

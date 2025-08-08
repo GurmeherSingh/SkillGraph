@@ -5,9 +5,9 @@ import os
 # openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # For development, you can hardcode the key (not recommended for production)
-# from dotenv import load_dotenv
-# load_dotenv()
-# openai.api_key = os.getenv("OPENAI_API_KEY")
+from dotenv import load_dotenv
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 async def get_completion(prompt: str, model: str = "gpt-4o") -> str:

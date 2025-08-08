@@ -29,7 +29,13 @@ const GraphViewer = ({ skillGraph }) => {
         Skill Graph
       </Typography>
       {skillGraph ? (
-        <div className="mermaid">{skillGraph}</div>
+        skillGraph.startsWith('%% Error:') ? (
+          <Typography variant="body2" color="error">
+            Sorry, there was an error generating your skill graph. Please try again or adjust your skills/role.
+          </Typography>
+        ) : (
+          <div className="mermaid">{skillGraph}</div>
+        )
       ) : (
         <Typography variant="body2" color="text.secondary">
           Your skill graph will appear here once you select a role.

@@ -44,11 +44,23 @@ class SkillCompareResponse(BaseModel):
 class PlanGenerateRequest(BaseModel):
     skill_gaps: List[str]
 
-class PlanGenerateResponse(BaseModel):
-    study_plan: Dict[str, Any]
+class Resource(BaseModel):
+    name: str
+    url: str
+
+class WeeklyModule(BaseModel):
+    focus: str
+    resources: List[Resource]
+    time_commitment: str
+
+class StudyPlan(BaseModel):
+    study_plan: Dict[str, WeeklyModule]
+
+class PlanGenerateResponse(StudyPlan):
+    pass
 
 class PdfExportRequest(BaseModel):
-    study_plan: Dict[str, Any]
+    study_plan: Dict[str, WeeklyModule]
 
 
 # --- Load Role Templates ---
@@ -76,7 +88,6 @@ async def parse_resume(file: UploadFile = File(...)):
 
         prompt = f"""
         Analyze the following resume text and extract the skills, tools, and past roles.
-        Return the result as a JSON object with three keys: "skills", "tools", and "roles".
         - "skills": A list of technical skills (e.g., Python, JavaScript, SQL).
         - "tools": A list of software tools and platforms (e.g., Git, Docker, Jira).
         - "roles": A list of job titles held by the person (e.g., Software Engineer, Project Manager).
@@ -85,19 +96,22 @@ async def parse_resume(file: UploadFile = File(...)):
         ---
         {text}
         ---
-
-        JSON Output:
         """
 
-        response_str = await get_completion(prompt)
-
+        # Use the JSON mode of the AI
+        response_str = await get_completion(prompt, response_schema=ResumeParseResponse)
+        
+        # The response is now a JSON string, so we can parse it directly.
+        # The AI is constrained by the schema, so JSONDecodeError is highly unlikely.
         try:
-            response_json = json.loads(response_str)
-            return response_json
+            return json.loads(response_str)
         except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail="Failed to parse AI response as JSON.")
+            # In case the model *still* messes up, which is rare with JSON mode.
+            raise HTTPException(status_code=500, detail="Failed to parse AI response as JSON despite using JSON mode.")
 
     except Exception as e:
+        # Log the exception for debugging
+        print(f"Error processing resume: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process resume: {str(e)}")
 
 
@@ -113,26 +127,37 @@ async def compare_skills(request: SkillCompareRequest):
     skill_gaps = list(required_skills - current_skills)
 
     prompt = f"""
-    Given a list of current skills and a list of skill gaps, generate a Mermaid.js graph definition.
-    The graph should show the relationships between the skills, with existing skills as prerequisites for missing skills where appropriate.
-    - Current skills should be styled differently (e.g., with a thicker border or different color).
-    - Skill gaps should be clearly identifiable.
-    - The graph should be a flowchart (graph TD).
+    You are an expert in creating Mermaid.js graphs.
+    Generate a Mermaid.js graph definition based on the provided skills.
+    The graph should be a flowchart (graph TD).
+    - Nodes with existing skills should be styled with a green background.
+    - Nodes with skill gaps should be styled with a yellow background.
+    - Show relationships where existing skills are prerequisites for skill gaps.
+    - Do NOT include any explanations or markdown formatting. Only output the raw Mermaid.js graph definition.
 
     Current Skills: {list(current_skills)}
     Skill Gaps: {skill_gaps}
 
-    Example of a Mermaid.js graph definition:
+    Example of a valid response:
     graph TD
-        A[Current Skill: Python] --> B(Gap: Machine Learning);
-        C[Current Skill: SQL] --> D(Gap: Big Data);
-        style A fill:#cfc,stroke:#333,stroke-width:2px
-        style C fill:#cfc,stroke:#333,stroke-width:2px
+        A["Python"];
+        B["Machine Learning"];
+        C["SQL"];
+        D["Big Data"];
+        A --> B;
+        C --> D;
+        style A fill:#9f9
+        style C fill:#9f9
+        style B fill:#ff9
+        style D fill:#ff9
 
     Mermaid.js Graph Definition:
     """
 
-    graph_definition = await get_completion(prompt)
+    graph_definition_raw = await get_completion(prompt)
+    
+    # Clean up the response to remove potential markdown fences
+    graph_definition = graph_definition_raw.strip().replace("```mermaid", "").replace("```", "").strip()
 
     return {
         "skill_gaps": skill_gaps,
@@ -141,7 +166,6 @@ async def compare_skills(request: SkillCompareRequest):
 
 @app.post("/generate_plan", response_model=PlanGenerateResponse)
 async def generate_plan(request: PlanGenerateRequest):
-    # ... (code for generating plan, unchanged)
     prompt = f"""
     You are an expert career coach. Create a personalized 6-month (24-week) study plan for a user trying to fill the following skill gaps:
     {request.skill_gaps}
@@ -151,37 +175,18 @@ async def generate_plan(request: PlanGenerateRequest):
     1. The skill(s) to focus on.
     2. 1-2 top-quality, free online resources (like tutorials, documentation, or videos) with URLs.
     3. An estimated time commitment for the week.
-
-    Return the result as a JSON object where keys are the weekly phases (e.g., "Week 1-2") and values are another object with "focus", "resources", and "time_commitment".
-
-    Example JSON output format:
-    {{
-      "Week 1-2: Introduction to Topic A": {{
-        "focus": "Topic A fundamentals",
-        "resources": [
-          {{"name": "Resource Name 1", "url": "http://example.com/resource1"}},
-          {{"name": "Resource Name 2", "url": "http://example.com/resource2"}}
-        ],
-        "time_commitment": "5-7 hours/week"
-      }},
-      "Week 3-4: Advanced Topic B": {{
-        "focus": "Advanced concepts in Topic B",
-        "resources": [
-          {{"name": "Resource Name 3", "url": "http://example.com/resource3"}}
-        ],
-        "time_commitment": "6-8 hours/week"
-      }}
-    }}
-
-    JSON Output:
+    
+    The keys for the main JSON object should be the weekly phases (e.g., "Week 1-2: Introduction to Topic A").
     """
 
-    response_str = await get_completion(prompt)
+    response_str = await get_completion(prompt, response_schema=StudyPlan)
     try:
-        study_plan = json.loads(response_str)
-        return {"study_plan": study_plan}
+        # The response is a JSON string. We load it into a Python dict.
+        study_plan_dict = json.loads(response_str)
+        # FastAPI will automatically validate and serialize this according to PlanGenerateResponse
+        return study_plan_dict
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse AI response for the study plan.")
+        raise HTTPException(status_code=500, detail="Failed to parse AI response for the study plan despite using JSON mode.")
 
 @app.post("/export_plan_pdf")
 async def export_plan_pdf(request: PdfExportRequest):

@@ -134,10 +134,6 @@ SkillGraph/
 └── README.md
 ```
 
-## 🖼️ Screenshots
-
-*(Add screenshots of your application here to showcase its features and UI.)*
-
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

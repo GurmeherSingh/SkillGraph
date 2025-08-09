@@ -39,17 +39,11 @@
 *   **FastAPI:** A modern, fast (high-performance) web framework for building APIs with Python 3.7+.
 *   **Pydantic:** Data validation and settings management using Python type annotations.
 *   **Uvicorn:** An ASGI server for running FastAPI applications.
-*   **OpenAI:** Used for the AI-powered features like resume parsing and study plan generation.
+*   **Gemini:** Used for the AI-powered features like resume parsing and study plan generation.
 *   **PyPDF:** A library for extracting text from PDF files.
 *   **ReportLab:** A library for creating PDF documents programmatically.
 
 ## 🏁 Getting Started
-
-### Prerequisites
-
-*   [Node.js](https://nodejs.org/en/) (v14 or later)
-*   [Python](https://www.python.org/downloads/) (v3.7 or later)
-*   An [OpenAI API Key](https://beta.openai.com/signup/)
 
 ### Installation & Setup
 

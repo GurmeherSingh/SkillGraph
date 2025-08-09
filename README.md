@@ -5,15 +5,15 @@
 ## 📸 Demo
 
 <p align="center">
-  <img alt="SkillGraph AI - Main Interface" src="assets/img1.png" width="48%">
+  <img alt="SkillGraph AI - Main Interface" src="frontend/src/assets/img1.png" width="48%">
   &nbsp;&nbsp;
   <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img2.png" width="48%">
   &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="assets/img3.png" width="48%">
+  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img3.png" width="48%">
   &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="assets/img4.png" width="48%">
+  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img4.png" width="48%">
   &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="assets/img5.png" width="48%">
+  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img5.png" width="48%">
 </p>
 
 ## ✨ Features

@@ -2,7 +2,6 @@
 
 **SkillGraph AI** is a powerful tool designed to help you visualize your career path, identify skill gaps, and generate a personalized study plan to achieve your professional goals. Simply upload your resume, select your target role, and let our AI-powered engine do the rest.
 
-## 📸 Demo
 
 <h3>📸 Demo</h3>
 

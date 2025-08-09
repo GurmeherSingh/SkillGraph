@@ -4,17 +4,23 @@
 
 ## 📸 Demo
 
-<p align="center">
-  <img alt="SkillGraph AI - Main Interface" src="frontend/src/assets/img1.png" width="48%">
-  &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img2.png" width="48%">
-  &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img3.png" width="48%">
-  &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img4.png" width="48%">
-  &nbsp;&nbsp;
-  <img alt="SkillGraph AI - Study Plan" src="frontend/src/assets/img5.png" width="48%">
-</p>
+<h3>📸 Demo</h3>
+
+<table>
+  <tr>
+    <td><img src="./frontend/src/assets/img1.png" alt="SkillGraph AI - Upload & Role Selection" width="400"></td>
+    <td><img src="./frontend/src/assets/img2.png" alt="SkillGraph AI - Role Selected and Roadmap" width="400"></td>
+  </tr>
+  <tr>
+    <td><img src="./frontend/src/assets/img3.png" alt="6-Month Study Roadmap Part 1" width="400"></td>
+    <td><img src="./frontend/src/assets/img4.png" alt="6-Month Study Roadmap Part 2" width="400"></td>
+  </tr>
+  <tr>
+    <td colspan="2" style="text-align:center">
+      <img src="./frontend/src/assets/img5.png" alt="Exported PDF Preview" width="800">
+    </td>
+  </tr>
+</table>
 
 ## ✨ Features
 
